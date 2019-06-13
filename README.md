@@ -7,6 +7,7 @@
 
 ## 思路
 因为分区内的数据块有序，因此整个分区可以当作一个有序数组，问题转换为归并排序。
+
 因为数据本身在内存中，因此可以使用内排序，**不必做多路归并**。
 
 #### 基本思路
@@ -25,12 +26,18 @@
 
 #### 复杂度
 令分区数有 K 个，总共的数据有 N 条。
+
 平均时间复杂度为 O(N * logK)，空闲复杂度为 O(N)。
 
 ## 代码结构
 Block - 数据块的定义
+
 Partition - 分区的定义
+
 MergeSortJob - 描述一个归并任务
-MergeSortThreadPoolExecutor - 线程池 + 任务队列
+
+MergeSortThreadPoolExecutor - 线程池 & 任务队列
+
 MergeSortK - 算法入口
+
 TestCase - 测试用例
