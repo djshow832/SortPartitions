@@ -81,6 +81,8 @@ public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
 
+        // Add lock to this code to make it atomic, preventing from two
+        // threads checking queue size simultaneously and both stop.
         synchronized (this) {
             if (t == null && r instanceof MergeSortJob) {
                 // Get the new sorted list, put it back to the queue.
