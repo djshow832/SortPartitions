@@ -31,6 +31,10 @@ public class TestCase {
             { { 1 }, { 2 } }, { { 3 }, { 3 } }
         },
         {
+            { { 2, 3 } },
+            { { 1, 4 } }
+        },
+        {
             { { 1 }, { 2, 3 }, { 3, 4 } },
             { { 1 }, { 2, 3 }, { 3, 4 } }
         },
@@ -124,7 +128,7 @@ public class TestCase {
     public static void randomTest() {
         final int TEST_TIMES = 100;
         final int MAX_PARTITION_COUNT = 1000;
-        final int MAX_BLOCK_COUNT = 1000;
+        final int MAX_BLOCK_SIZE = 1000;
 
         Random random = new Random();
         for (int testTimes = 0; testTimes < TEST_TIMES; testTimes++) {
@@ -133,10 +137,10 @@ public class TestCase {
             for (int partitionIndex = 0; partitionIndex < partitionCount; partitionIndex++) {
                 int[][] blocks = new int[1][];
                 for (int blockIndex = 0; blockIndex < 1; blockIndex++) {
-                    int blockSize = random.nextInt(MAX_BLOCK_COUNT);
+                    int blockSize = random.nextInt(MAX_BLOCK_SIZE);
                     int[] block = new int[blockSize];
                     for (int valueIndex = 0; valueIndex < blockSize; valueIndex++) {
-                        block[valueIndex] = random.nextInt();
+                        block[valueIndex] = random.nextInt(Integer.MAX_VALUE);
                     }
                     Arrays.sort(block);
                     blocks[blockIndex] = block;

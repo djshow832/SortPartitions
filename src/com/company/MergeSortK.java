@@ -1,6 +1,7 @@
 package com.company;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -11,29 +12,30 @@ import java.util.stream.Collectors;
 public class MergeSortK {
 
     /* Thread pool configurations */
-    private static final int CORE_POOL_SIZE = 10;
-    private static final int MAX_POOL_SIZE = 20;
+    private static final int CORE_POOL_SIZE = 2;
+    private static final int MAX_POOL_SIZE = 2;
     private static final int KEEP_ALIVE_TIME = 5000;
 
     /**
-     * Sort partitions, each of which is originally sorted.
+     * Sort partitions, each of which is originally sorted by blocks.
      *
      * @param partitions partitions to be sorted
      * @return sorted value list
      */
     public static List sortPartitions(List<Partition> partitions) {
-        // Put all blocks in one partition to a single list
-        List<List> valueLists = partitions.stream().map(Partition::getValueList).collect(Collectors.toList());
-        if (valueLists.size() == 0) {
+        if (partitions.size() == 0) {
             return new ArrayList();
         }
-        if (valueLists.size() == 1) {
-            return valueLists.get(0);
+        if (partitions.size() == 1) {
+            return partitions.get(0).getValueList();
         }
+
+        // Put each partition into a single list
+        List<List<Partition>> partitionLists = partitions.stream().map(Arrays::asList).collect(Collectors.toList());
 
         // Create a thread pool
         MergeSortThreadPoolExecutor threadPoolExecutor = new MergeSortThreadPoolExecutor(CORE_POOL_SIZE, MAX_POOL_SIZE,
-                KEEP_ALIVE_TIME, valueLists);
+                KEEP_ALIVE_TIME, partitionLists);
         threadPoolExecutor.prestartAllCoreThreads();
 
         // Start sorting

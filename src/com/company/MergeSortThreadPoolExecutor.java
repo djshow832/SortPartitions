@@ -14,27 +14,27 @@ import java.util.concurrent.TimeUnit;
  *
  * One possible work path:
  * Data: (3), (1), (5), (2), (4), Threads: 2
- * Thread1: (3) + (1) => (1, 3)
- * Thread2: (5) + (2) => (2, 5)
- * Thread1: (4) + (1, 3) => (1, 3, 4)
- * Thread1: (2, 5) + (1, 3, 4) => (1, 2, 3, 4, 5)
+ * Thread1: (3) + (1) => [(1), (3)]
+ * Thread2: (5) + (2) => [(2), (5)]
+ * Thread1: (4) + [(1), (3)] => [(1), (3), (4)]
+ * Thread1: [(2), (5)] + [(1), (3), (4)] => [(1), (2), (3), (4), (5)]
  */
 public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
 
     // Queue stores sorted lists.
-    private List<List> valueLists;
+    private List<List<Partition>> partitionLists;
     // The total value count in all lists.
     private int        totalValueCount;
 
     public MergeSortThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime,
-                                       List<List> valueLists){
+                                       List<List<Partition>> partitionLists){
         super(corePoolSize,
             maximumPoolSize,
             keepAliveTime,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(valueLists.size() / 2));
+            new ArrayBlockingQueue<>(partitionLists.size() / 2));
 
-        initValueLists(valueLists);
+        initPartitionLists(partitionLists);
     }
 
     /**
@@ -42,22 +42,22 @@ public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
      *
      * @param inputLists original 2d array.
      */
-    private void initValueLists(List<List> inputLists) {
+    private void initPartitionLists(List<List<Partition>> inputLists) {
         totalValueCount = inputLists.stream().map(List::size).reduce(0, Integer::sum);
-        valueLists = new LinkedList<>(inputLists);
+        partitionLists = new LinkedList<>(inputLists);
     }
 
     /**
      * Consume lists and produce jobs.
      */
     public void start() {
-        List<Runnable> jobs = new ArrayList<>(valueLists.size() / 2);
+        List<Runnable> jobs = new ArrayList<>(partitionLists.size() / 2);
         Runnable job;
         while ((job = peekNewJob()) != null) {
             jobs.add(job);
         }
-        // Remove all nodes from valueLists and then start running. Don't do it
-        // parallel.
+        // Remove all nodes from partitionLists and then start running.
+        // Don't do it simultaneously.
         jobs.forEach(this::execute);
     }
 
@@ -67,7 +67,22 @@ public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
      * @return the sorted list.
      */
     public List getSortResult() {
-        return valueLists.get(0);
+        List result = new ArrayList();
+        for (List<Partition> partitionList : partitionLists) {
+            for (Partition partition : partitionList) {
+                result.addAll(partition.getValueList());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Judge if it's all finished according to the merged result.
+     *
+     * @return true if finished or false otherwise.
+     */
+    private boolean isFinished() {
+        return partitionLists.size() == 1 && partitionLists.get(0).size() == totalValueCount;
     }
 
     /**
@@ -86,11 +101,11 @@ public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
         synchronized (this) {
             if (t == null && r instanceof MergeSortJob) {
                 // Get the new sorted list, put it back to the queue.
-                List outputBlockList = ((MergeSortJob) r).getOutputList();
-                valueLists.add(outputBlockList);
+                List<Partition> outputList = ((MergeSortJob) r).getOutputList();
+                partitionLists.add(outputList);
 
                 // If it's the very last one, shutdown.
-                if (outputBlockList.size() == totalValueCount) {
+                if (isFinished()) {
                     shutdown();
                 }
 
@@ -109,8 +124,8 @@ public class MergeSortThreadPoolExecutor extends ThreadPoolExecutor {
      * @return A job if there's one, or null if none.
      */
     private Runnable peekNewJob() {
-        if (valueLists.size() > 1) {
-            return new MergeSortJob(valueLists.remove(0), valueLists.remove(0));
+        if (partitionLists.size() > 1) {
+            return new MergeSortJob(partitionLists.remove(0), partitionLists.remove(0));
         }
         return null;
     }

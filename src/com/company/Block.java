@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Block containing sorted array.
  */
-public class Block<T extends Comparable> {
+public class Block<T extends Comparable> extends ComparableContainer<T> {
 
     private List<T> values;
 
@@ -19,5 +19,23 @@ public class Block<T extends Comparable> {
 
     public void setValues(List<T> values) {
         this.values = values;
+    }
+
+    @Override
+    public T getFirst() {
+        if (values.isEmpty()) {
+            return null;
+        } else {
+            return values.get(0);
+        }
+    }
+
+    @Override
+    public T getLast() {
+        if (values.isEmpty()) {
+            return null;
+        } else {
+            return values.get(values.size() - 1);
+        }
     }
 }
